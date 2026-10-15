@@ -22,6 +22,7 @@ import {
   Download,
 } from "lucide-react";
 import "./styles.css";
+
 const seed = {
   about: {
     title: "التعريف بالمختبر",
