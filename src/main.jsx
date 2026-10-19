@@ -487,25 +487,36 @@ function AuthPage({ user, profile, nav }) {
       options: { data: { full_name: fullName.trim() } },
     });
 
-    setBusy(false);
-
     if (authError) {
+      setBusy(false);
+      console.error("signUp failed:", authError);
+      const msg = authError.message?.toLowerCase() ?? "";
       setError(
-        authError.message?.toLowerCase().includes("registered")
+        msg.includes("registered")
           ? "هذا البريد مسجل مسبقاً."
-          : "تعذر إنشاء الحساب. حاول مرة أخرى.",
+          : msg.includes("rate limit")
+            ? "تم تجاوز عدد محاولات التسجيل المسموح بها مؤقتاً. حاول مرة أخرى بعد قليل."
+            : `تعذر إنشاء الحساب. حاول مرة أخرى. (${authError.message})`,
       );
       return;
     }
 
+    // No email verification: if sign-up didn't return a session, sign in right away.
     if (!data.session) {
-      switchMode("signin");
-      setNotice(
-        "تم إنشاء الحساب. تحقق من بريدك الإلكتروني لتأكيد الحساب ثم سجّل الدخول.",
-      );
-      return;
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (signInError) {
+        setBusy(false);
+        console.error("auto sign-in failed:", signInError);
+        switchMode("signin");
+        setNotice("تم إنشاء الحساب. يمكنك الآن تسجيل الدخول.");
+        return;
+      }
     }
 
+    setBusy(false);
     nav("home");
   }
 
